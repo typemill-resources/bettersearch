@@ -37,8 +37,8 @@ class Bettersearch extends Plugin
 			[	
 				'httpMethod' 	=> 'get', 
 				'route' 		=> '/indexrs51gfe2o2', 
-				'name' 			=> 'search.frontend', 
-				'class' 		=> 'Plugins\search\SearchController:index',
+				'name' 			=> 'bettersearch.frontend', 
+				'class' 		=> 'Plugins\bettersearch\SearchController:index',
 			],
 		];
 	}

@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugins\search;
+namespace Plugins\bettersearch;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
