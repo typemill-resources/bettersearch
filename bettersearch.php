@@ -71,7 +71,7 @@ class Bettersearch extends Plugin
     	$storage = new StorageWrapper($this->settings['storage']);
 
     	# delete the index file here
-    	$storage->deleteFile('cacheFolder', '', 'index.json');		
+    	$storage->deleteFile('cacheFolder', '', 'searchindex.json');		
 	}
 
 	public function onPagetreeLoaded($data)
@@ -118,9 +118,9 @@ class Bettersearch extends Plugin
 		$this->addJS('/bettersearch/public/lunr.js');
 		
 		# add language support 
-		$langattr = ( isset($this->settings['settings']['langattr']) && $this->settings['settings']['langattr'] != '' ) ? $this->settings['settings']['langattr'] : 'en';
+		$langattr = ( isset($this->settings['langattr']) && $this->settings['langattr'] != '' ) ? $this->settings['langattr'] : 'en';
 		if($langattr != 'en')
-		{
+		{			
 			if(isset($langsupport[$langattr]))
 			{
 				$this->addJS('/bettersearch/public/lunr-languages/min/lunr.stemmer.support.min.js');
