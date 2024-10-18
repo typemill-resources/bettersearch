@@ -136,59 +136,71 @@ function runSearch(event)
     var resultPages = results.map(function(match)
     {
         var singleResult        = documents[match.ref];
-        singleResult.snippet    = singleResult.content.substring(0, 100);
-
-        var lunrterm            = Object.keys(match.matchData.metadata)[0];
-
-        if (match.matchData.metadata[lunrterm].content !== undefined)
+        
+        if (typeof singleResult.content === 'string') 
         {
-            var positionStart   = match.matchData.metadata[lunrterm].content.position[0][0];
-            var positionLength  = match.matchData.metadata[lunrterm].content.position[0][1];
-            var positionEnd     = positionStart + positionLength;
+            singleResult.snippet = singleResult.content.substring(0, 100);
 
-            if (positionStart > 50)
+            var lunrterm            = Object.keys(match.matchData.metadata)[0];
+
+            if (match.matchData.metadata[lunrterm].content !== undefined)
             {
-                var snippet     = singleResult.content.slice(positionStart - 50, positionEnd + 50);
-                positionStart   = 50;
-                positionEnd     = 50 + positionLength;
-            } 
-            else 
-            {
-                var snippet     = singleResult.content.slice(0, positionEnd + 100 - positionStart);
+                var positionStart   = match.matchData.metadata[lunrterm].content.position[0][0];
+                var positionLength  = match.matchData.metadata[lunrterm].content.position[0][1];
+                var positionEnd     = positionStart + positionLength;
+
+                if (positionStart > 50)
+                {
+                    var snippet     = singleResult.content.slice(positionStart - 50, positionEnd + 50);
+                    positionStart   = 50;
+                    positionEnd     = 50 + positionLength;
+                } 
+                else 
+                {
+                    var snippet     = singleResult.content.slice(0, positionEnd + 100 - positionStart);
+                }
+
+                snippet             = snippet.slice(0, positionStart) + '<span class="lunr-hl">' + snippet.slice(positionStart, positionEnd) + '</span>' + snippet.slice(positionEnd, snippet.length) + '...';
+
+                if (positionStart > 50)
+                {
+                    snippet         = '...' + snippet;
+                }
+
+                singleResult.snippet = snippet;
             }
 
-            snippet             = snippet.slice(0, positionStart) + '<span class="lunr-hl">' + snippet.slice(positionStart, positionEnd) + '</span>' + snippet.slice(positionEnd, snippet.length) + '...';
+            singleResult.hltitle    = singleResult.title;
 
-            if (positionStart > 50)
+            if (match.matchData.metadata[lunrterm].title !== undefined)
             {
-                snippet         = '...' + snippet;
+                var positionStart   = match.matchData.metadata[lunrterm].title.position[0][0];
+                var positionLength  = match.matchData.metadata[lunrterm].title.position[0][1];
+                var positionEnd     = positionStart + positionLength;
+
+                singleResult.hltitle = singleResult.title.slice(0, positionStart) + '<span class="lunr-hl">' + singleResult.title.slice(positionStart, positionEnd) + '</span>' + singleResult.title.slice(positionEnd, singleResult.title.length);
             }
 
-            singleResult.snippet = snippet;
+            return singleResult;
         }
 
-        singleResult.hltitle    = singleResult.title;
+        return null;
+    })
+    .filter(function(result) {
 
-        if (match.matchData.metadata[lunrterm].title !== undefined)
-        {
-            var positionStart   = match.matchData.metadata[lunrterm].title.position[0][0];
-            var positionLength  = match.matchData.metadata[lunrterm].title.position[0][1];
-            var positionEnd     = positionStart + positionLength;
-
-            singleResult.hltitle = singleResult.title.slice(0, positionStart) + '<span class="lunr-hl">' + singleResult.title.slice(positionStart, positionEnd) + '</span>' + singleResult.title.slice(positionEnd, singleResult.title.length);
-        }
-
-        return singleResult;
+        /*  Filter out the null/undefined entries */
+        
+        return result !== null;
     });
 
-    // Reset filter counts
+    /* Reset filter counts */
     for (var filter in filterCounts)
     {
         filterCounts['all'] = 0;
         filterCounts[filter] = 0;
     }
 
-    // Update filter counts
+    /* Update filter counts */
     resultPages.forEach(function(result)
     {
         filterCounts['all']++;

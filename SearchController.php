@@ -10,17 +10,25 @@ use Typemill\Controllers\Controller;
 
 class SearchController extends Controller
 {
+	protected $error = false;
+
 	public function index(Request $request, Response $response, $args)
 	{
 		$storage = new StorageWrapper($this->settings['storage']);
 
 		$index = $storage->getFile('cacheFolder', '', 'searchindex.json');
 
-		$checkIndex = json_decode($index);
-
-		if(!$index or empty($checkIndex))
+		if(!$index or empty(json_decode($index)))
 		{
-			$this->createIndex($storage);
+			$createIndex = $this->createIndex($storage);
+
+			if(!$createIndex)
+			{
+				$response->getBody()->write($this->error);
+
+				$response->withHeader('Content-Type', 'application/json')->withStatus(500);
+			}
+
 			$index = $storage->getFile('cacheFolder', '', 'searchindex.json');
 		}
 	
@@ -40,8 +48,21 @@ class SearchController extends Controller
         # get data for search-index
         $index = $this->getAllContent($liveNavigation, $storage, [], null);
 
+        if(!$index OR !is_array($index) OR empty($index))
+        {
+        	$this->error = 'We could not create the search-index.';
+        	return false;
+        }
+
 		# store the index file here
-		$storage->writeFile('cacheFolder', '', 'searchindex.json', json_encode($index, JSON_UNESCAPED_SLASHES));
+		$store = $storage->writeFile('cacheFolder', '', 'searchindex.json',  json_encode($index, JSON_UNESCAPED_SLASHES));
+		if(!$store)
+		{
+			$this->error = $storage->getError();
+			return false; 
+		}
+
+		return true;
 	}
 
     private function getAllContent($navigation, $storage, $index, $firstLevel)
