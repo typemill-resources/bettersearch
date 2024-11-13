@@ -13,13 +13,14 @@
     top: 15px;
 }
 .icon.icon-search {
+    cursor: pointer;
     display: inline-block;
     width: 1em;
     height: 1em;
     stroke-width: 0;
     stroke: currentColor;
     fill: currentColor;
-    vertical-align: middle;
+    vertical-align: inherit;
 }
 .searchContainer input, .modal-content input {
     width: 100%;
