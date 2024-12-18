@@ -8,7 +8,11 @@ if(searchForm)
     var noresulttitle       = searchForm.dataset.noresulttitle;
     var noresulttext        = searchForm.dataset.noresulttext;
     var filterCounts        = {};
-    var searchFilters       = JSON.parse(searchForm.dataset.filter);
+    try {
+        searchFilters = JSON.parse(searchForm.dataset.filter);
+    } catch (error) {
+        searchFilters = false;
+    }
 
     searchForm.addEventListener('click', function() 
     {
@@ -48,7 +52,7 @@ function openSearch()
     populateFilters();
 
     if (!searchIndex) {
-        tmaxios.get('/indexrs51gfe2o2').then(function(response) {
+        tmaxios.get('/indexrs62hgf3p3').then(function(response) {
             documents = response.data;
             searchIndex = lunr(function() {
                 if (language && language !== 'en') {
@@ -100,22 +104,25 @@ function populateFilters()
     // Initialize count for "All" filter
     filterCounts['All'] = 0;
 
-    searchFilters.forEach(function(filter) {
-        // Initialize filter count
-        filterCounts[filter.name] = 0;
+    if(searchFilters)
+    {
+        searchFilters.forEach(function(filter) {
+            // Initialize filter count
+            filterCounts[filter.name] = 0;
 
-        var filterElement = document.createElement('p');
-        filterElement.dataset.path = filter.path;
-        filterElement.dataset.name = filter.name;
-        filterElement.textContent = `${filter.name} (0)`;
+            var filterElement = document.createElement('p');
+            filterElement.dataset.path = filter.path;
+            filterElement.dataset.name = filter.name;
+            filterElement.textContent = `${filter.name} (0)`;
 
-        filterElement.addEventListener('click', function(event)
-        {
-            filterResults(event.target.dataset.path);
+            filterElement.addEventListener('click', function(event)
+            {
+                filterResults(event.target.dataset.path);
+            });
+
+            filterContainer.appendChild(filterElement);
         });
-
-        filterContainer.appendChild(filterElement);
-    });
+    }
 }
 
 function runSearch(event)

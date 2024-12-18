@@ -36,7 +36,8 @@ class Bettersearch extends Plugin
 			# add a frontend route with a form
 			[	
 				'httpMethod' 	=> 'get', 
-				'route' 		=> '/indexrs51gfe2o2', 
+#				'route' 		=> '/indexrs51gfe2o2', 
+				'route' 		=> '/indexrs62hgf3p3', 
 				'name' 			=> 'bettersearch.frontend', 
 				'class' 		=> 'Plugins\bettersearch\SearchController:index',
 			],
