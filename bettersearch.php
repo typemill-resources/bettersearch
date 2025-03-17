@@ -173,7 +173,7 @@ class Bettersearch extends Plugin
 		$placeholder 		= (isset($pluginsettings['placeholder']) && $pluginsettings['placeholder'] != '') ? $pluginsettings['placeholder'] : 'search ...';
 
 		$pageData['widgets']['search'] = '<div class="searchContainer"' 
-											. 'data-access="' . $secret 
+											. ' data-access="' . $secret 
 											. '" data-token="' . $token 
 											. '" data-language="' . $langattr 
 											. '" data-searchplaceholder="' . $placeholder 

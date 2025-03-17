@@ -102,8 +102,14 @@ class SearchController extends Controller
 		$title = trim($parts[0], '# ');
 		$title = str_replace(["\r\n", "\n", "\r"],' ', $title);
 
+
+	    # Get and clean up the content
+	    $content = $parts[1] ?? '';
+	    
+	    # Remove empty lines
+	    $content = preg_replace('/^\s*$(?:\r\n?|\n)/m', '', $content);
+
 		# get and cleanup the content
-		$content = $parts[1];
 		$content = str_replace(["\r\n", "\n", "\r"],' ', $content);
 		$content = $this->strip_markdown($content);
 
@@ -182,8 +188,8 @@ class SearchController extends Controller
 		if(!$content){return false;} 
 
 		# inline links
-		$content = preg_replace('/\[(.*?)\][\[\(].*?[\]\)]/', '$1', $content);
-		if(!$content){return false;} 
+#		$content = preg_replace('/\[(.*?)\][\[\(].*?[\]\)]/', '$1', $content);
+#		if(!$content){return false;} 
 
 		# referenced style links 
 		#  $content = preg_replace('/^\s{1,2}\[(.*?)\]: (\S+)( ".*?")?\s*$/', '$1', $content);
