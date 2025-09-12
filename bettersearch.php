@@ -13,6 +13,11 @@ class Bettersearch extends Plugin
 
 	protected $navigation;
 	
+	public static function setPremiumLicence()
+	{
+		return 'MAKER';
+	}
+
     public static function getSubscribedEvents()
     {
 		return array(
