@@ -207,7 +207,7 @@ class Bettersearch extends Plugin
 		$token     			= base64_encode($payload . '.' . $signature);
 
 		$pageData['widgets']['search'] = '<div class="searchContainer"' 
-											. '" data-token="' . $token 
+											. ' data-token="' . $token 
 											. '" data-project="' . $this->project 
 											. '" data-language="' . $langattr 
 											. '" data-searchplaceholder="' . $placeholder 
@@ -227,7 +227,7 @@ class Bettersearch extends Plugin
     	if(isset($pluginsettings['searchfield']) && $pluginsettings['searchfield'] == 'icon')
     	{
 			$pageData['widgets']['search'] = '<div class="searchContainerIcon"' 
-												. '" data-token="' . $token 
+												. ' data-token="' . $token
 												. '" data-project="' . $this->project 
 												. '" data-language="' . $langattr 
 												. '" data-searchplaceholder="' . $placeholder 
