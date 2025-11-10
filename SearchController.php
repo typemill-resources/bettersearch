@@ -362,22 +362,6 @@ class SearchController extends Controller
 		return $decoded;
 	}
 
-	private function getProjectLabel()
-	{
-		if($this->project && $this->projectlist)
-		{
-			foreach($this->projectlist as $project)
-			{
-				if($project['id'] == $this->project)
-				{
-					return $project['label'];
-				}
-			}
-		}
-
-		return false;
-	}
-
 	private function validateToken($token)
 	{
 		if(!$token)
