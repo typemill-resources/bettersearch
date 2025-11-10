@@ -9,10 +9,10 @@ class Bettersearch extends Plugin
 {
 	protected $item;
 
-	protected $settings;
-
 	protected $navigation;
 	
+	protected $project = NULL;
+
 	public static function setPremiumLicence()
 	{
 		return 'MAKER';
@@ -21,7 +21,8 @@ class Bettersearch extends Plugin
     public static function getSubscribedEvents()
     {
 		return array(
-			'onSettingsLoaded' 		=> 'onsettingsLoaded',
+			'onSettingsLoaded'		=> 'onSettingsLoaded',
+			'onProjectFound'		=> 'onProjectFound',
 			'onPagetreeLoaded' 		=> 'onPagetreeLoaded',
 			'onPageReady'			=> 'onPageReady',
 			'onPagePublished'		=> 'onPagePublished',
@@ -39,9 +40,8 @@ class Bettersearch extends Plugin
 		return [
 
 			# add a frontend route with a form
-			[	
+			[
 				'httpMethod' 	=> 'get', 
-#				'route' 		=> '/indexrs51gfe2o2', 
 				'route' 		=> '/indexrs62hgf3p3', 
 				'name' 			=> 'bettersearch.frontend', 
 				'class' 		=> 'Plugins\bettersearch\SearchController:index',
@@ -49,9 +49,16 @@ class Bettersearch extends Plugin
 		];
 	}
 
-	public function onSettingsLoaded($settings)
+	# at any of theses events, delete the old search index
+	public function onSettingsLoaded($settingsData)
 	{
-		$this->settings = $settings->getData();
+		$this->settings = $settingsData->getData();
+	}
+
+	# at any of theses events, delete the old search index
+	public function onProjectFound($projectData)
+	{
+		$this->project = $projectData->getData()['project'] ?? null;
 	}
 
 	# at any of theses events, delete the old search index
@@ -68,30 +75,36 @@ class Bettersearch extends Plugin
 		$this->deleteSearchIndex();
 	}
 	public function onPageDeleted($item)
-	{
+	{                    
 		$this->deleteSearchIndex();
 	}
-
+                 
 	private function deleteSearchIndex()
 	{
+		$index = 'index';
+
+		if($this->project)
+		{
+			$index .= '_' . $this->project;
+		}
+
     	$storage = new StorageWrapper($this->settings['storage']);
 
     	# delete the index file here
-    	$storage->deleteFile('cacheFolder', '', 'searchindex.json');		
+    	$storage->deleteFile('dataFolder', 'bettersearch', $index . '.json');		
 	}
 
 	public function onPagetreeLoaded($data)
 	{
-		$this->navigation = $data->getData();
+		$this->navigation = $data->getData();		
 	}
 	
 	# add the search form to frontend
 	public function onPageReady($page)
 	{
 		$pageData 			= $page->getData($page);
-
+		$settings 			= $this->settings;
 		$pluginsettings 	= $this->getPluginSettings('bettersearch');
-		$salt 				= "asPx9Derf2";
 		$langsupport 		= [	'ar' => true,
 								'da' => true,
 								'de' => true,
@@ -124,9 +137,9 @@ class Bettersearch extends Plugin
 		$this->addJS('/bettersearch/public/lunr.js');
 		
 		# add language support 
-		$langattr = ( isset($this->settings['langattr']) && $this->settings['langattr'] != '' ) ? $this->settings['langattr'] : 'en';
+		$langattr = ( isset($settings['langattr']) && $settings['langattr'] != '' ) ? $settings['langattr'] : 'en';
 		if($langattr != 'en')
-		{			
+		{
 			if(isset($langsupport[$langattr]))
 			{
 				$this->addJS('/bettersearch/public/lunr-languages/min/lunr.stemmer.support.min.js');
@@ -141,24 +154,33 @@ class Bettersearch extends Plugin
 		# add the custom search script
 		$this->addJS('/bettersearch/public/bettersearch.js');
 
-		# simple security for first request
-		$secret = time();
-		$secret = substr($secret,0,-1);
-		$secret = md5($secret . $salt);
+		$searchfilter = [];
 
-		# simple csrf protection with a session for long following requests
-		if (session_status() == PHP_SESSION_NONE)
+		if(
+			isset($pluginsettings['fullindex']) && 
+			$pluginsettings['fullindex'] && 
+	        isset($settings['projects']) &&
+	        $settings['projects'] != 'standard' &&
+	        $settings['baseprojectid'] &&
+	        $settings['baseprojectlabel'] &&
+	        is_array($settings['projectinstances'])
+		)
 		{
-		    session_start();
+			$searchfilter[] = [
+				'name' 		=> $settings['baseprojectlabel'],
+				'path' 		=> '/' . strtolower($settings['baseprojectid']) . '/', 
+				'base'		=> true
+			];
+
+			foreach($settings['projectinstances'] as $id => $label)
+			{
+				$searchfilter[] = [
+					'name' 	=> $label,
+					'path' 	=> '/' . strtolower($id) . '/'
+				];
+			}
 		}
-
-		$length 					= 32;
-		$token 						= substr(base_convert(sha1(uniqid(mt_rand())), 16, 36), 0, $length);
-		$_SESSION['search'] 		= $token; 
-		$_SESSION['search-expire'] 	= time() + 1300; # 60 seconds * 30 minutes
-
-		$searchfilter 	= [];
-		if(isset($this->navigation) && $this->navigation)
+		elseif(isset($this->navigation) && $this->navigation)
 		{
 			foreach($this->navigation as $firstLevel)
 			{
@@ -177,9 +199,16 @@ class Bettersearch extends Plugin
 		$noresulttext 		= (isset($pluginsettings['noresulttext']) && $pluginsettings['noresulttext'] != '' ) ? $pluginsettings['noresulttext'] : 'We did not find anything for that search term.';
 		$placeholder 		= (isset($pluginsettings['placeholder']) && $pluginsettings['placeholder'] != '') ? $pluginsettings['placeholder'] : 'search ...';
 
+		# Generate simple token
+		$secretKey 			= hash('sha256', __DIR__); // any local unique key
+		$timestamp 			= time();
+		$payload   			= json_encode(['t' => $timestamp]);
+		$signature 			= hash_hmac('sha256', $payload, $secretKey);
+		$token     			= base64_encode($payload . '.' . $signature);
+
 		$pageData['widgets']['search'] = '<div class="searchContainer"' 
-											. ' data-access="' . $secret 
 											. '" data-token="' . $token 
+											. '" data-project="' . $this->project 
 											. '" data-language="' . $langattr 
 											. '" data-searchplaceholder="' . $placeholder 
 											. '" data-noresulttitle="' . $noresulttitle 
@@ -198,8 +227,8 @@ class Bettersearch extends Plugin
     	if(isset($pluginsettings['searchfield']) && $pluginsettings['searchfield'] == 'icon')
     	{
 			$pageData['widgets']['search'] = '<div class="searchContainerIcon"' 
-												. 'data-access="' . $secret 
 												. '" data-token="' . $token 
+												. '" data-project="' . $this->project 
 												. '" data-language="' . $langattr 
 												. '" data-searchplaceholder="' . $placeholder 
 												. '" data-noresulttitle="' . $noresulttitle 

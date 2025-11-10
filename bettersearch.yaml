@@ -25,3 +25,7 @@ forms:
       type: text
       label: 'Text for no result message'
       placeholder: 'We did not find anything for that search term.'
+    fullindex:
+      type: checkbox
+      label: 'Cross Project Search'
+      checkboxlabel: 'Include results from all projects instead of only the current one.'

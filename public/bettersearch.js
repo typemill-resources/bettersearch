@@ -4,6 +4,8 @@ if(searchForm)
     var searchIndex         = false;
     var documents           = false;
     var language            = searchForm.dataset.language;
+    var token               = searchForm.dataset.token;
+    var project             = searchForm.dataset.project;
     var searchplaceholder   = searchForm.dataset.searchplaceholder;
     var noresulttitle       = searchForm.dataset.noresulttitle;
     var noresulttext        = searchForm.dataset.noresulttext;
@@ -52,7 +54,7 @@ function openSearch()
     populateFilters();
 
     if (!searchIndex) {
-        tmaxios.get('/indexrs62hgf3p3').then(function(response) {
+        tmaxios.get('/indexrs62hgf3p3?token='+token+'+&project='+project).then(function(response) {
             documents = response.data;
             searchIndex = lunr(function() {
                 if (language && language !== 'en') {
@@ -72,7 +74,21 @@ function openSearch()
                     });
                 }
             });
-        }).catch(function(error) {});
+        })
+        .catch(function(error) {
+            let message = 'Failed to load search index.';
+
+            // Check if server sent a message
+            if (error.response && error.response.data)
+            {
+                if (typeof error.response.data === 'string')
+                {
+                    message = error.response.data;
+                }
+            }
+
+            showError(message);
+        });
     }
 
     document.getElementById('modalSearchField').addEventListener("input", function(event)
@@ -284,4 +300,14 @@ function noResult()
     resultsString += "</div>";
 
     document.getElementById('modalSearchResult').innerHTML = resultsString;
+}
+
+function showError(error)
+{
+    var resultsString = "<div class='noresultwrapper'>";
+    resultsString += "<h3>Error</h3>";
+    resultsString += "<p>" + error + "</p>";
+    resultsString += "</div>";
+
+    document.getElementById('modalSearchResult').innerHTML = resultsString;    
 }
