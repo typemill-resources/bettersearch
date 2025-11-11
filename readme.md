@@ -1,8 +1,8 @@
 # Search Plugin
 
-This plugin integrates a full-text search for your website. It is based on lunr.js. The development of the first version has been sponsored by [vodaris](https://www.vodaris.de/).
+This plugin integrates a full-text search for your website. It is based on flexsearch. The development of the first version has been sponsored by [vodaris](https://www.vodaris.de/).
 
-Just activate the plugin and it will add a search field to your website (depending on your theme). The plugin does not require any third-party-software like Google Search or Algolia. Instead it includes the JavaScript search library [lunr.js](https://lunrjs.com/) and generate a full-text search index on the fly.
+Just activate the plugin and it will add a search field to your website (depending on your theme). The plugin does not require any third-party-software like Google Search or Algolia. Instead it includes the JavaScript search library [flexsearch](https://github.com/nextapps-de/flexsearch) and generate a full-text search index on the fly.
 
 ![Screenshot of Search Results](media/live/typemill-search.png){.center}
 
