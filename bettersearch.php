@@ -152,7 +152,7 @@ class Bettersearch extends Plugin
 		}
 
 		# add the custom search script
-		$this->addJS('/bettersearch/public/bettersearch.js');
+		$this->addJS('/bettersearch/public/bettersearch.js?202511');
 
 		$searchfilter = [];
 

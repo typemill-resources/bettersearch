@@ -46,14 +46,14 @@ class SearchController extends Controller
 
 			if($project)
 			{
-				$this->project = $project;
-			
-				if(isset($pluginSettings['fullindex']) && $pluginSettings['fullindex'])
-				{
-					# search all indexes
-					$this->projectlist = $navigation->getAllProjects($this->settings);
-				}
+				$this->project = $project;			
 			}
+		}
+
+		if(isset($pluginSettings['fullindex']) && $pluginSettings['fullindex'])
+		{
+			# search all indexes
+			$this->projectlist = $navigation->getAllProjects($this->settings);
 		}
 
 		$index = $this->getIndex($storage, $navigation);
