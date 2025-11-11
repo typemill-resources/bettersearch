@@ -25,6 +25,10 @@ forms:
       type: text
       label: 'Text for no result message'
       placeholder: 'We did not find anything for that search term.'
+    allfiltertext:
+      type: text
+      label: 'Text for all results filter category'
+      placeholder: 'All'
     fullindex:
       type: checkbox
       label: 'Cross Project Search'

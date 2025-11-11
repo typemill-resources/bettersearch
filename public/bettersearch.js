@@ -1,15 +1,16 @@
 var searchForm = document.getElementById("searchForm");
 if(searchForm)
 {
-    var searchIndex         = false;
-    var documents           = false;
+    var searchIndex       = false;
+    var documents         = false;
     var language            = searchForm.dataset.language;
     var token               = searchForm.dataset.token;
     var project             = searchForm.dataset.project;
     var searchplaceholder   = searchForm.dataset.searchplaceholder;
     var noresulttitle       = searchForm.dataset.noresulttitle;
     var noresulttext        = searchForm.dataset.noresulttext;
-    var filterCounts        = {};
+    var allfiltertext       = searchForm.dataset.allfiltertext;
+    var filterCounts           = {};
     try {
         searchFilters = JSON.parse(searchForm.dataset.filter);
     } catch (error) {
@@ -56,24 +57,20 @@ function openSearch()
     if (!searchIndex) {
         tmaxios.get('/indexrs62hgf3p3?token='+token+'+&project='+project).then(function(response) {
             documents = response.data;
-            searchIndex = lunr(function() {
-                if (language && language !== 'en') {
-                    this.use(lunr[language]);
-                }
 
-                this.ref("id");
-                this.field("title", { boost: 10 });
-                this.field("content");
-                this.metadataWhitelist = ['position'];
-
-                for (var key in documents) {
-                    this.add({
-                        "id": documents[key].url,
-                        "title": documents[key].title,
-                        "content": documents[key].content
-                    });
+            searchIndex = new FlexSearch.Document({
+                tokenize: "full",
+                document: {
+                    store: true,
+                    id: "url",
+                    index: ["title", "content"]
                 }
             });
+
+            var values = Object.values(documents);
+            for (let i = 0; i < values.length; i++) {
+                searchIndex.add(values[i]);
+            }
         })
         .catch(function(error) {
             let message = 'Failed to load search index.';
@@ -111,14 +108,14 @@ function populateFilters()
     var allFilter = document.createElement('p');
     allFilter.dataset.path = '';
     allFilter.dataset.name = 'all';
-    allFilter.textContent = 'all (0)';
+    allFilter.textContent = allfiltertext + ' (0)';
     allFilter.addEventListener('click', function(event) {
         filterResults(event.target.dataset.path);
     });
     filterContainer.appendChild(allFilter);
 
     // Initialize count for "All" filter
-    filterCounts['All'] = 0;
+    filterCounts['all'] = 0;
 
     if(searchFilters)
     {
@@ -141,6 +138,26 @@ function populateFilters()
     }
 }
 
+function restructureResults(grouped) {
+    const byId = new Map();
+    for (const group of grouped) {
+        const field = group.field;
+        for (const r of group.result) {
+            const id = r.id;
+            let entry = byId.get(id);
+            if (!entry) {
+                entry = {
+                    id,
+                    doc: r.doc || null
+                };
+                byId.set(id, entry);
+            }
+            if (!entry[field]) entry[field] = r.highlight;
+        }
+    }
+    return Array.from(byId.values());
+}
+
 function runSearch(event)
 {
     event.preventDefault();
@@ -154,60 +171,36 @@ function runSearch(event)
 
     document.getElementById('modalSearchResult').innerHTML = '';
 
-    var results = searchIndex.search(term);
+    var results = restructureResults(searchIndex.search({
+        query: term,
+        // enrich: true,
+        highlight: {
+            template: "<span class=\"search-hl\">$1</span>",
+            boundary: 100,
+            ellipsis: "...",
+            merge: true
+        }
+    }));
 
     var resultPages = results.map(function(match)
     {
-        var singleResult        = documents[match.ref];
-        
-        if (typeof singleResult.content === 'string') 
-        {
-            singleResult.snippet = singleResult.content.substring(0, 100);
+        var singleResult = {
+            filtername: match.doc.filtername,
+            filterpath: match.doc.filterpath,
+            url: match.doc.url,
+            hltitle: match.doc.title,
+            snippet: match.doc.content.length > 100 ? match.doc.content.substring(0, 100) + '...' : match.doc.content
+        };
 
-            var lunrterm            = Object.keys(match.matchData.metadata)[0];
-
-            if (match.matchData.metadata[lunrterm].content !== undefined)
-            {
-                var positionStart   = match.matchData.metadata[lunrterm].content.position[0][0];
-                var positionLength  = match.matchData.metadata[lunrterm].content.position[0][1];
-                var positionEnd     = positionStart + positionLength;
-
-                if (positionStart > 50)
-                {
-                    var snippet     = singleResult.content.slice(positionStart - 50, positionEnd + 50);
-                    positionStart   = 50;
-                    positionEnd     = 50 + positionLength;
-                } 
-                else 
-                {
-                    var snippet     = singleResult.content.slice(0, positionEnd + 100 - positionStart);
-                }
-
-                snippet             = snippet.slice(0, positionStart) + '<span class="lunr-hl">' + snippet.slice(positionStart, positionEnd) + '</span>' + snippet.slice(positionEnd, snippet.length) + '...';
-
-                if (positionStart > 50)
-                {
-                    snippet         = '...' + snippet;
-                }
-
-                singleResult.snippet = snippet;
-            }
-
-            singleResult.hltitle    = singleResult.title;
-
-            if (match.matchData.metadata[lunrterm].title !== undefined)
-            {
-                var positionStart   = match.matchData.metadata[lunrterm].title.position[0][0];
-                var positionLength  = match.matchData.metadata[lunrterm].title.position[0][1];
-                var positionEnd     = positionStart + positionLength;
-
-                singleResult.hltitle = singleResult.title.slice(0, positionStart) + '<span class="lunr-hl">' + singleResult.title.slice(positionStart, positionEnd) + '</span>' + singleResult.title.slice(positionEnd, singleResult.title.length);
-            }
-
-            return singleResult;
+        if (typeof match.content === 'string') {
+            singleResult.snippet = match.content;
         }
 
-        return null;
+        if (typeof match.title === 'string') {
+            singleResult.hltitle = match.title;
+        }
+
+        return singleResult;
     })
     .filter(function(result) {
 
@@ -239,7 +232,12 @@ function runSearch(event)
         var name = filterElement.dataset.name;
         if (filterCounts[name] !== undefined)
         {
-            filterElement.textContent = `${name} (${filterCounts[name]})`;
+            if (name === 'all')
+            {
+                filterElement.textContent = `${allfiltertext} (${filterCounts[name]})`;
+            } else {
+                filterElement.textContent = `${name} (${filterCounts[name]})`;
+            }
             if (filterCounts[name] > 0)
             {
                 filterElement.classList.add('has-results');

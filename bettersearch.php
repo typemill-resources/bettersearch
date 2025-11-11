@@ -105,56 +105,19 @@ class Bettersearch extends Plugin
 		$pageData 			= $page->getData($page);
 		$settings 			= $this->settings;
 		$pluginsettings 	= $this->getPluginSettings('bettersearch');
-		$langsupport 		= [	'ar' => true,
-								'da' => true,
-								'de' => true,
-								'du' => true,
-								'es' => true,
-								'fi' => true,
-								'fr' => true,
-								'hi' => true,
-								'hu' => true,
-								'it' => true,
-								'ja' => true,
-								'jp' => true,
-								'nl' => true,
-								'no' => true,
-								'pt' => true,
-								'ro' => true,
-								'ru' => true,
-								'sv' => true,
-								'th' => true,
-								'tr' => true,
-								'vi' => true,
-								'zh' => true ]; 
-
 
 		# activate axios and vue in frontend
 		$this->activateAxios();
 
-		# add the css and lunr library
-		$this->addCSS('/bettersearch/public/bettersearch.css');
-		$this->addJS('/bettersearch/public/lunr.js');
-		
-		# add language support 
-		$langattr = ( isset($settings['langattr']) && $settings['langattr'] != '' ) ? $settings['langattr'] : 'en';
-		if($langattr != 'en')
-		{
-			if(isset($langsupport[$langattr]))
-			{
-				$this->addJS('/bettersearch/public/lunr-languages/min/lunr.stemmer.support.min.js');
-				$this->addJS('/bettersearch/public/lunr-languages/min/lunr.' . $langattr . '.min.js');
-			}
-			else
-			{
-				$langattr = false;
-			}
-		}
+        # add the css
+        $this->addCSS('/bettersearch/public/bettersearch.css');
 
-		# add the custom search script
-		$this->addJS('/bettersearch/public/bettersearch.js');
+        # add the flexsearch and custom search script
+        $this->addJS('/bettersearch/public/flexsearch.compact.min.js');
+        $this->addJS('/bettersearch/public/bettersearch.js');
 
-		$searchfilter = [];
+
+        $searchfilter = [];
 
 		if(
 			isset($pluginsettings['fullindex']) && 
@@ -198,6 +161,7 @@ class Bettersearch extends Plugin
 		$noresulttitle 		= (isset($pluginsettings['noresulttitle']) && $pluginsettings['noresulttitle'] != '' ) ? $pluginsettings['noresulttitle'] : 'No result.';
 		$noresulttext 		= (isset($pluginsettings['noresulttext']) && $pluginsettings['noresulttext'] != '' ) ? $pluginsettings['noresulttext'] : 'We did not find anything for that search term.';
 		$placeholder 		= (isset($pluginsettings['placeholder']) && $pluginsettings['placeholder'] != '') ? $pluginsettings['placeholder'] : 'search ...';
+        $allfiltertext 		= (isset($pluginsettings['allfiltertext']) && $pluginsettings['allfiltertext'] != '') ? $pluginsettings['allfiltertext'] : 'all';
 
 		# Generate simple token
 		$secretKey 			= hash('sha256', __DIR__); // any local unique key
@@ -208,12 +172,12 @@ class Bettersearch extends Plugin
 
 		$pageData['widgets']['search'] = '<div class="searchContainer"' 
 											. ' data-token="' . $token 
-											. '" data-project="' . $this->project 
-											. '" data-language="' . $langattr 
-											. '" data-searchplaceholder="' . $placeholder 
+											. '" data-project="' . $this->project
+											. '" data-searchplaceholder="' . $placeholder
 											. '" data-noresulttitle="' . $noresulttitle 
 											. '" data-noresulttext="' . $noresulttext 
-											. '" data-filter="' . $searchfilterJson 
+											. '" data-filter="' . $searchfilterJson
+                                            . '" data-allfiltertext="' . $allfiltertext
 											. '" id="searchForm">' .
 									        '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="display:none">' .
 												'<symbol id="icon-search" viewBox="0 0 20 20">' .
@@ -228,12 +192,12 @@ class Bettersearch extends Plugin
     	{
 			$pageData['widgets']['search'] = '<div class="searchContainerIcon"' 
 												. ' data-token="' . $token
-												. '" data-project="' . $this->project 
-												. '" data-language="' . $langattr 
+												. '" data-project="' . $this->project
 												. '" data-searchplaceholder="' . $placeholder 
 												. '" data-noresulttitle="' . $noresulttitle 
-												. '" data-noresulttext="' . $noresulttext 
-												. '" data-filter="' . $searchfilterJson 
+												. '" data-noresulttext="' . $noresulttext
+                                                . '" data-allfiltertext="' . $allfiltertext
+                                                . '" data-filter="' . $searchfilterJson
 												. '" id="searchForm">' .
 										        '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="display:none">' .
 													'<symbol id="icon-search" viewBox="0 0 20 20">' .
