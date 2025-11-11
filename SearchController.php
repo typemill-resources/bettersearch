@@ -326,8 +326,8 @@ class SearchController extends Controller
 		if(!$content){return false;} 
 
 		# inline links
-        $content = preg_replace('/\[(.*?)\][\[(](.*?)[\])]/', '$1 $2', $content);
-		if(!$content){return false;}
+#        $content = preg_replace('/\[(.*?)\][\[(](.*?)[\])]/', '$1 $2', $content);
+#		if(!$content){return false;}
 
 		# referenced style links 
 		#  $content = preg_replace('/^\s{1,2}\[(.*?)\]: (\S+)( ".*?")?\s*$/', '$1', $content);

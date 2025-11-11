@@ -1,8 +1,8 @@
 var searchForm = document.getElementById("searchForm");
 if(searchForm)
 {
-    var searchIndex       = false;
-    var documents         = false;
+    var searchIndex         = false;
+    var documents           = false;
     var language            = searchForm.dataset.language;
     var token               = searchForm.dataset.token;
     var project             = searchForm.dataset.project;
@@ -10,7 +10,7 @@ if(searchForm)
     var noresulttitle       = searchForm.dataset.noresulttitle;
     var noresulttext        = searchForm.dataset.noresulttext;
     var allfiltertext       = searchForm.dataset.allfiltertext;
-    var filterCounts           = {};
+    var filterCounts        = {};
     try {
         searchFilters = JSON.parse(searchForm.dataset.filter);
     } catch (error) {
@@ -68,7 +68,13 @@ function openSearch()
             });
 
             var values = Object.values(documents);
-            for (let i = 0; i < values.length; i++) {
+            for (let i = 0; i < values.length; i++)
+            {
+                // stripout links, we need them in other context so they are not stripped out in php
+                if (values[i].content)
+                {
+                    values[i].content = stripMarkdownLinks(values[i].content);
+                }
                 searchIndex.add(values[i]);
             }
         })
@@ -109,7 +115,8 @@ function populateFilters()
     allFilter.dataset.path = '';
     allFilter.dataset.name = 'all';
     allFilter.textContent = allfiltertext + ' (0)';
-    allFilter.addEventListener('click', function(event) {
+    allFilter.addEventListener('click', function(event)
+    {
         filterResults(event.target.dataset.path);
     });
     filterContainer.appendChild(allFilter);
@@ -119,7 +126,8 @@ function populateFilters()
 
     if(searchFilters)
     {
-        searchFilters.forEach(function(filter) {
+        searchFilters.forEach(function(filter)
+        {
             // Initialize filter count
             filterCounts[filter.name] = 0;
 
@@ -162,10 +170,14 @@ function runSearch(event)
 {
     event.preventDefault();
 
-    var term = document.getElementById('modalSearchField').value;
+    var searchField = document.getElementById('modalSearchField');
+    var term = searchField.value.trim();
 
     if (term.length < 2)
     {
+        noResult();                // show no results
+        resetFilterCounts();       // reset all filter counts to 0
+        renderFilters();          // update filter display
         return;
     }
 
@@ -192,12 +204,31 @@ function runSearch(event)
             snippet: match.doc.content.length > 100 ? match.doc.content.substring(0, 100) + '...' : match.doc.content
         };
 
-        if (typeof match.content === 'string') {
-            singleResult.snippet = match.content;
-        }
-
         if (typeof match.title === 'string') {
             singleResult.hltitle = match.title;
+        }
+
+        // --- HIGHLIGHT FIRST OCCURRENCE IN CONTENT ---
+        if (typeof match.doc.content === 'string') {
+            let content = match.doc.content;
+            let idx = content.toLowerCase().indexOf(term.toLowerCase());
+            if (idx !== -1) {
+                // take 50 chars before and after
+                let start = Math.max(0, idx - 50);
+                let end   = Math.min(content.length, idx + term.length + 50);
+                let snippet = content.slice(start, end);
+                snippet = snippet.slice(0, idx - start) +
+                          '<span class="search-hl">' +
+                          snippet.slice(idx - start, idx - start + term.length) +
+                          '</span>' +
+                          snippet.slice(idx - start + term.length);
+                if (start > 0) snippet = "..." + snippet;
+                if (end < content.length) snippet = snippet + "...";
+                singleResult.snippet = snippet;
+            } else {
+                // fallback
+                singleResult.snippet = content.substring(0, 100) + '...';
+            }
         }
 
         return singleResult;
@@ -209,68 +240,66 @@ function runSearch(event)
         return result !== null;
     });
 
-    /* Reset filter counts */
+    resetFilterCounts();
+    updateFilterCounts(resultPages);
+    renderFilters();
+    renderResults(resultPages, term);
+}
+
+function stripMarkdownLinks(text)
+{
+    // Replace [label](url) → label
+    return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+}
+
+function resetFilterCounts()
+{
     for (var filter in filterCounts)
     {
-        filterCounts['all'] = 0;
         filterCounts[filter] = 0;
     }
+}
 
-    /* Update filter counts */
-    resultPages.forEach(function(result)
+function updateFilterCounts(results)
+{
+    results.forEach(function(result)
     {
         filterCounts['all']++;
-
-        if (result.filtername)
-        {
-            filterCounts[result.filtername]++;
-        }
+        if (result.filtername) filterCounts[result.filtername]++;
     });
+}
 
-    document.querySelectorAll('#modalFilter p').forEach(function(filterElement) 
+function renderFilters()
+{
+    document.querySelectorAll('#modalFilter p').forEach(function(filterElement)
     {
         var name = filterElement.dataset.name;
         if (filterCounts[name] !== undefined)
         {
-            if (name === 'all')
-            {
-                filterElement.textContent = `${allfiltertext} (${filterCounts[name]})`;
-            } else {
-                filterElement.textContent = `${name} (${filterCounts[name]})`;
-            }
-            if (filterCounts[name] > 0)
-            {
-                filterElement.classList.add('has-results');
-            } 
-            else 
-            {
-                filterElement.classList.remove('has-results');
-            }
+            filterElement.textContent = name === 'all' ? `${allfiltertext} (${filterCounts[name]})` : `${name} (${filterCounts[name]})`;
+            filterElement.classList.toggle('has-results', filterCounts[name] > 0);
         }
     });
+}
 
-    if (resultPages === undefined || resultPages.length == 0)
+function renderResults(results, term)
+{
+    if (!results || results.length === 0)
     {
         noResult();
         return;
     }
-    else
+    var resultsString = "<div class='resultwrapper'><ul class='resultlist'>";
+    results.forEach(function(r)
     {
-        var resultsString = "<div class='resultwrapper'>";
-        resultsString += "<ul class='resultlist'>";
-        resultPages.forEach(function(r)
-        {
-            resultsString += "<a href='" + r.url + "?q=" + term + "'>";
-            resultsString += "<li class='resultitem' data-path='" + r.filterpath + "' data-name='" + r.filtername + "'>";
-            resultsString += "<h3 class='resultheader'>" + r.hltitle + "</h3>";
-            resultsString += "<div class='resultsnippet'>" + r.snippet + "</div>";
-            resultsString += "</li>";
-            resultsString += "</a>";
-        });
-        resultsString += "</ul></div>";
-
-        document.getElementById('modalSearchResult').innerHTML = resultsString;
-    }
+        resultsString += "<a href='" + r.url + "?q=" + term + "'>";
+        resultsString += "<li class='resultitem' data-path='" + r.filterpath + "' data-name='" + r.filtername + "'>";
+        resultsString += "<h3 class='resultheader'>" + r.hltitle + "</h3>";
+        resultsString += "<div class='resultsnippet'>" + r.snippet + "</div>";
+        resultsString += "</li></a>";
+    });
+    resultsString += "</ul></div>";
+    document.getElementById('modalSearchResult').innerHTML = resultsString;
 }
 
 function filterResults(path)
