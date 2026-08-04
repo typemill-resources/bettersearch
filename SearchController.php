@@ -58,11 +58,11 @@ class SearchController extends Controller
 
 		$index = $this->getIndex($storage, $navigation);
 
-		if($this->error)
+		if($this->error && !$index)
 		{
 			$response->getBody()->write($this->error);
 
-			$response->withHeader('Content-Type', 'application/json')->withStatus(500);
+			return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
 		}
 
 		$response->getBody()->write($index);
@@ -92,6 +92,7 @@ class SearchController extends Controller
 				{
 					$this->indexname = "index_" . strtolower($singleproject['id']);
 
+					$navigation = new Navigation();
 					$navigation->setProject($this->settings, '/' . $singleproject['id'] . '/');
 
 					$index = $this->getSingleIndex($storage, $navigation);
@@ -127,9 +128,13 @@ class SearchController extends Controller
 
 	private function getSingleIndex($storage, $navigation)
 	{
+		$this->error = NULL;
+
 		$index = $storage->getFile('dataFolder', 'bettersearch', $this->indexname . '.json');
 
-		if(!$index or empty(json_decode($index)))
+		$decoded = json_decode($index, true);
+
+		if (!$index || json_last_error() !== JSON_ERROR_NONE || empty($decoded))
 		{
 			$index = $this->createIndex($storage, $navigation);
 

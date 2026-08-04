@@ -10,6 +10,8 @@ class Bettersearch extends Plugin
 	protected $item;
 
 	protected $navigation;
+
+	protected $settings;
 	
 	protected $project = NULL;
 
