@@ -3,6 +3,7 @@ version: 3.4.0
 description: 'Add a full-text-search to your website and filter the result by folders.'
 author: Trendschau
 homepage: https://trendschau.net
+repo: https://github.com/typemill-resources/bettersearch
 license: MAKER
 
 forms:
